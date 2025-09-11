@@ -30,29 +30,39 @@ class PSTPServer:
         print(f"[+] New connection from {addr}")
         try:
             device_id = "phone01"
-            print(f"   → Проверка устройства: {device_id}")
-            print(f"   → Разрешённые устройства: {list(self.auth.allowed_devices.keys())}")
+            print(f"   → Checking device: {device_id}")
+            print(f"   → Allowed devices: {list(self.auth.allowed_devices.keys())}")
+
             challenge = self.auth.generate_challenge(device_id)
             if not challenge:
-                print(f"   ❌ Устройство {device_id} не найдено в allowed_devices")
+                print(f"   ❌ Device {device_id} not allowed")
                 conn.sendall(b'FORBIDDEN')
                 conn.close()
                 return
-            
+
+            # Отправляем challenge — сырые 16 байт
             conn.sendall(challenge)
-            print(f"   -> Challenge sent: {challenge.hex()}")
+            print(f"   → Challenge sent: {challenge.hex()} ({len(challenge)} bytes)")
 
-            response = conn.recv(64).decode('utf-8').strip()
-            print(f"   -> Response received: {response}")
+            # Получаем HMAC-ответ — ТОЧНО 64 байта (hex)
+            response_bytes = recv_all(conn, 64)
+            if not response_bytes:
+                print("   ❌ No response from client")
+                conn.close()
+                return
 
-            authenticated_device = self.auth.verify_response(challenge.hex(), response)
+            response = response_bytes.decode('utf-8').strip()
+            print(f"   → Response received: {response}")
+
+            # Проверяем HMAC
+            authenticated_device = self.auth.verify_response(challenge, response)  # ← ПЕРЕДАЁМ СЫРЫЕ БАЙТЫ
             if not authenticated_device:
                 conn.sendall(b'AUTH_FAIL')
                 conn.close()
-                print("   -> Authentication failed")
+                print("   → Authentication failed")
                 return
 
-            print(f"   -> Authentication successful for {authenticated_device}")
+            print(f"   → Authentication successful for {authenticated_device}")
 
             shared_secret = read_server_allowed_devices()[authenticated_device]
             aes_key, mac_key = self.derive_keys(shared_secret)
@@ -62,7 +72,7 @@ class PSTPServer:
             self.message_loop(conn, authenticated_device, aes_key, mac_key)
 
         except Exception as e:
-            print(f"   -> Error: {e}")
+            print(f"   → Error: {e}")
         finally:
             conn.close()
             print(f"[-] Connection from {addr} closed")
@@ -88,7 +98,7 @@ class PSTPServer:
 
                 try:
                     package, plaintext = Package.unpack_and_decrypt(full_packet, aes_key, mac_key)
-                    print(f"   <- Received: {plaintext}")
+                    print(f"   ← Received: {plaintext}")
 
                     try:
                         cmd = json.loads(plaintext)
@@ -113,14 +123,14 @@ class PSTPServer:
                     resp_package = Package(resp_header)
                     packed_response = resp_package.encrypt_and_pack(response_text, aes_key, mac_key)
                     conn.sendall(packed_response)
-                    print(f"   -> Sent: {response}")
+                    print(f"   → Sent: {response}")
 
                 except ValueError as e:
-                    print(f"   -> Decryption error: {e}")
+                    print(f"   → Decryption error: {e}")
                     conn.sendall(b'DECRYPT_FAIL')
 
             except Exception as e:
-                print(f"   -> Message loop error: {e}")
+                print(f"   → Message loop error: {e}")
                 break
 
     def start(self):
@@ -128,7 +138,7 @@ class PSTPServer:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((self.host, self.port))
             s.listen(5)
-            print(f"PSTP server started on {self.host}:{self.port}")
+            print(f"🚀 PSTP server started on {self.host}:{self.port}")
             print("Waiting for connections...")
 
             while True:

@@ -56,7 +56,7 @@ def handle_send(client_socket, encryption_key, mac_key, device_id, message_queue
 
             client_socket.sendall(packed)
 
-            ack = client_socket.recv(4)
+            ack = recv_all(client_socket, 4)
             if ack == b'NACK':
                 print("Message not acknowledged")
 
