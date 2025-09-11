@@ -73,3 +73,4 @@ MIT — do what you want. Modify. Distribute. Use everywhere.
 
 👋 Author
 Created with ❤️ for those who want to control their digital life — completely, securely, without compromise.
+
