@@ -14,6 +14,7 @@ class DeviceAuthenticator:
     def generate_challenge(self, device_id: str) -> Optional[bytes]:
         print(f"   [Auth] Проверка устройства: {device_id}")
         print(f"   [Auth] Доступные устройства: {list(self.allowed_devices.keys())}")
+        device_id = device_id.strip()
         if device_id not in self.allowed_devices:
             print(f"   [Auth] ❌ Устройство {device_id} не разрешено")
             return None
