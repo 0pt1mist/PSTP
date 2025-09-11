@@ -30,12 +30,15 @@ class PSTPServer:
         print(f"[+] New connection from {addr}")
         try:
             device_id = "phone01"
+            print(f"   → Проверка устройства: {device_id}")
+            print(f"   → Разрешённые устройства: {list(self.auth.allowed_devices.keys())}")
             challenge = self.auth.generate_challenge(device_id)
             if not challenge:
+                print(f"   ❌ Устройство {device_id} не найдено в allowed_devices")
                 conn.sendall(b'FORBIDDEN')
                 conn.close()
                 return
-
+            
             conn.sendall(challenge)
             print(f"   -> Challenge sent: {challenge.hex()}")
 

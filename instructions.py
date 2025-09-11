@@ -28,6 +28,6 @@ def read_server_allowed_devices(file_path=CONFIG_FILE):
         line = line.strip()
         if ':' in line:
             device_id, secret = line.split(':', 1)
-            device_secrets[device_id.ljust(16)[:16]] = secret.encode('utf-8')
+            device_secrets[device_id.strip()] = secret.encode('utf-8')
 
     return device_secrets

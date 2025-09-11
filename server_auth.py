@@ -12,12 +12,16 @@ class DeviceAuthenticator:
         self.active_challenges: Dict[str, tuple] = {}
 
     def generate_challenge(self, device_id: str) -> Optional[bytes]:
+        print(f"   [Auth] Проверка устройства: {device_id}")
+        print(f"   [Auth] Доступные устройства: {list(self.allowed_devices.keys())}")
         if device_id not in self.allowed_devices:
+            print(f"   [Auth] ❌ Устройство {device_id} не разрешено")
             return None
 
         nonce = secrets.token_bytes(16)
         timestamp = int(time.time())
         self.active_challenges[nonce.hex()] = (device_id, timestamp)
+        print(f"   [Auth] ✅ Challenge сгенерирован для {device_id}")
         return nonce
 
     def verify_response(self, challenge_nonce: str, response: str) -> Optional[str]:
