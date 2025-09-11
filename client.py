@@ -25,7 +25,7 @@ def main():
         s.connect((SERVER_HOST, SERVER_PORT))
 
         challenge = s.recv(16)
-        print(f"Challenge received: {challenge.hex()}")
+        print(f"   [Client] Challenge received: {challenge.hex()} ({len(challenge)} bytes)")
 
         h = hmac.new(shared_secret, challenge, hashlib.sha256)
         response = h.hexdigest()

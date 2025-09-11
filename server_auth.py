@@ -23,6 +23,7 @@ class DeviceAuthenticator:
         timestamp = int(time.time())
         self.active_challenges[nonce.hex()] = (device_id, timestamp)
         print(f"   [Auth] ✅ Challenge сгенерирован для {device_id}")
+        print(f"   [Auth] Challenge generated: {nonce.hex()} ({len(nonce)} bytes)")
         return nonce
 
     def verify_response(self, challenge_nonce: str, response: str) -> Optional[str]:
