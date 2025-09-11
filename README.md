@@ -56,21 +56,33 @@ python client.py
 🎉 Done. Now you control everything.
 
 🛠️ How to get started?
+
 Clone the repository.
+
 Install dependencies: pip install cryptography
+
 Configure MainConf.conf — specify DeviceID and shared secret.
+
 Start the server → start the client → get access.
 
+
 🧭 Philosophy
+
 Technology should work for you — not you for it.
+
 PSTP v2 is not “another protocol”.
+
 It’s your personal digital lock.
+
 You choose who to open the door to.
+
 And when to close it.
+
 
 📜 License
 MIT — do what you want. Modify. Distribute. Use everywhere.
 
 👋 Author
 Created with ❤️ for those who want to control their digital life — completely, securely, without compromise.
+
 
