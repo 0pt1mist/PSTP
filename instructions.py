@@ -8,26 +8,31 @@ def read_device_config(file_path=CONFIG_FILE):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Config file {file_path} not found")
 
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8-sig') as f:  # ← 'utf-8-sig' удаляет BOM
         lines = [line.strip() for line in f.readlines() if line.strip()]
+
+    print(f"   [Config] DeviceID: {repr(lines[0])}")
+    print(f"   [Config] SharedSecret: {repr(lines[1])}")
 
     if len(lines) < 2:
         raise ValueError("Config file must have at least 2 lines: DeviceID and SharedSecret")
 
     device_id = lines[0]
-    shared_secret = lines[1].encode('utf-8')
+    shared_secret = lines[1].encode('utf-8-sig')
 
     return device_id, shared_secret
 
 def read_server_allowed_devices(file_path=CONFIG_FILE):
     device_secrets = {}
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8-sig') as f:
         lines = f.readlines()
 
     for line in lines[2:]:
         line = line.strip()
         if ':' in line:
             device_id, secret = line.split(':', 1)
-            device_secrets[device_id.strip()] = secret.encode('utf-8')
-
+            device_id = device_id.strip()
+            secret = secret.strip()
+            print(f"   [Config] Allowed Device: {repr(device_id)} -> {repr(secret)}")
+            device_secrets[device_id] = secret.encode('utf-8-sig')
     return device_secrets

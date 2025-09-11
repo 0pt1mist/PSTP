@@ -8,7 +8,7 @@ import hashlib
 from instructions import read_device_config
 from PSTP import Package, Header
 
-SERVER_HOST = '192.168.1.100'  # ЗАМЕНИТЕ НА IP ВАШЕГО СЕРВЕРА
+SERVER_HOST = '192.168.1.44'  # ЗАМЕНИТЕ НА IP ВАШЕГО СЕРВЕРА
 SERVER_PORT = 8080
 
 def derive_keys(shared_secret: bytes):

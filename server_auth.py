@@ -40,8 +40,13 @@ class DeviceAuthenticator:
             challenge_nonce.encode(),
             hashlib.sha256
         ).hexdigest()
+    
+        print(f"   [Auth] Ожидаемый HMAC: {expected_hmac}")
+        print(f"   [Auth] Полученный HMAC: {response}")
 
         if not hmac.compare_digest(response, expected_hmac):
+            print(f"   [Auth] ❌ HMAC не совпадает")
             return None
 
+        print(f"   [Auth] ✅ HMAC совпадает")
         return device_id
