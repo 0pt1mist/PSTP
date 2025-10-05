@@ -1,5 +1,5 @@
 # PSTP.py — Private Secure Transfer Protocol
-# Безопасный протокол аутентификации и обмена командами
+# Безопасный протокол аутентификации и обмена команд
 # Работает поверх TCP, но криптографически независим от транспорта
 
 import struct
@@ -17,7 +17,7 @@ from cryptography.hazmat.backends import default_backend
 # Глобальные константы
 # ========================================
 
-HEADER_FORMAT = '!BBH I 16s 8s 8s H'
+HEADER_FORMAT = '!BBH I 16s 8s I H'
 HEADER_SIZE = struct.calcsize(HEADER_FORMAT)
 AES_KEY_SIZE = 32
 NONCE_SIZE = 12
@@ -27,19 +27,26 @@ NONCE_SIZE = 12
 # ========================================
 
 class Header:
+    # Добавляем константу размера заголовка в класс
+    HEADER_SIZE = HEADER_SIZE
+    
     def __init__(self, Version=1, HeaderLen=HEADER_SIZE, PackageLen=0, ConnectionID=1,
                  DeviceID="", Nonce=b"", Timestamp=0, Reserved=0):
         self.Version = Version
         self.HeaderLen = HeaderLen
         self.PackageLen = PackageLen
         self.ConnectionID = ConnectionID
-        self.DeviceID = DeviceID.ljust(16)[:16].encode('utf-8')
-        self.Nonce = Nonce[:8]
+        # ИСПРАВЛЕНИЕ: корректное кодирование DeviceID
+        if isinstance(DeviceID, str):
+            self.DeviceID = DeviceID.ljust(16)[:16].encode('utf-8')
+        else:
+            # Если уже байты, просто обрезаем
+            self.DeviceID = DeviceID.ljust(16)[:16] if len(DeviceID) < 16 else DeviceID[:16]
+        self.Nonce = Nonce[:8] if len(Nonce) >= 8 else Nonce.ljust(8)[:8]
         self.Timestamp = int(Timestamp)
         self.Reserved = Reserved
 
     def pack(self):
-        timestamp_bytes = self.Timestamp.to_bytes(4, 'big')[:4]
         return struct.pack(
             HEADER_FORMAT,
             self.Version,
@@ -48,23 +55,28 @@ class Header:
             self.ConnectionID,
             self.DeviceID,
             self.Nonce,
-            timestamp_bytes,
+            self.Timestamp,
             self.Reserved
         )
 
     @classmethod
     def unpack(cls, header_bytes):
         unpacked = struct.unpack(HEADER_FORMAT, header_bytes)
-        timestamp_bytes = unpacked[6]
-        timestamp_int = int.from_bytes(timestamp_bytes[:4], 'big')
+        # ИСПРАВЛЕНИЕ: корректное декодирование DeviceID
+        device_id_bytes = unpacked[4]
+        try:
+            device_id = device_id_bytes.decode('utf-8', errors='ignore').strip('\x00 ')
+        except:
+            device_id = device_id_bytes.hex()  # fallback
+        
         return cls(
             Version=unpacked[0],
             HeaderLen=unpacked[1],
             PackageLen=unpacked[2],
             ConnectionID=unpacked[3],
-            DeviceID=unpacked[4].decode('utf-8', errors='ignore').strip('\x00'),
+            DeviceID=device_id,  # Теперь строка
             Nonce=unpacked[5],
-            Timestamp=timestamp_int,
+            Timestamp=unpacked[6],
             Reserved=unpacked[7]
         )
 
@@ -109,12 +121,12 @@ class Package:
 
     @classmethod
     def unpack_and_decrypt(cls, packet_bytes, encryption_key: bytes, mac_key: bytes):
-        if len(packet_bytes) < HEADER_SIZE + 16:
+        if len(packet_bytes) < Header.HEADER_SIZE + 16:
             raise ValueError("Packet too short")
 
-        header_bytes = packet_bytes[:HEADER_SIZE]
+        header_bytes = packet_bytes[:Header.HEADER_SIZE]
         mac_received = packet_bytes[-16:]
-        encrypted_data = packet_bytes[HEADER_SIZE:-16]
+        encrypted_data = packet_bytes[Header.HEADER_SIZE:-16]
 
         header = Header.unpack(header_bytes)
 

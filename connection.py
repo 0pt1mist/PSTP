@@ -8,18 +8,19 @@ import PSTP
 def handle_receive(client_socket, encryption_key, mac_key, on_message_callback):
     while True:
         try:
-            header_bytes = recv_all(client_socket, PSTP.HEADER_SIZE)
+            # ИСПРАВЛЕНО: правильный порядок чтения пакета
+            header_bytes = recv_all(client_socket, PSTP.Header.HEADER_SIZE)
             if not header_bytes:
-                break
-
-            mac_bytes = recv_all(client_socket, 16)
-            if not mac_bytes:
                 break
 
             header = PSTP.Header.unpack(header_bytes)
             encrypted_data_len = header.PackageLen - header.HeaderLen
             encrypted_data = recv_all(client_socket, encrypted_data_len)
             if not encrypted_data:
+                break
+
+            mac_bytes = recv_all(client_socket, 16)
+            if not mac_bytes:
                 break
 
             full_packet = header_bytes + encrypted_data + mac_bytes
@@ -45,8 +46,9 @@ def handle_send(client_socket, encryption_key, mac_key, device_id, message_queue
             if message is None:
                 break
 
+            # ИСПРАВЛЕНО: передаем строку, а не байты
             header = PSTP.Header(
-                DeviceID=device_id,
+                DeviceID=device_id,  # СТРОКА
                 Nonce=PSTP.Package.generate_nonce(),
                 Timestamp=int(time.time())
             )

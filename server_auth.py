@@ -8,21 +8,35 @@ from typing import Dict, Optional
 
 class DeviceAuthenticator:
     def __init__(self, allowed_devices: Dict[str, bytes]):
-        self.allowed_devices = allowed_devices
-        self.active_challenges: Dict[bytes, tuple] = {}  # ← Ключ — сырые байты, не hex
+        # ИСПРАВЛЕНИЕ: нормализуем ключи словаря
+        self.allowed_devices = {}
+        for device_id, secret in allowed_devices.items():
+            if isinstance(device_id, bytes):
+                device_id = device_id.decode('utf-8', errors='ignore').strip()
+            elif isinstance(device_id, str):
+                device_id = device_id.strip()
+            self.allowed_devices[device_id] = secret
+        
+        self.active_challenges: Dict[bytes, tuple] = {}
 
     def generate_challenge(self, device_id: str) -> Optional[bytes]:
-        print(f"   [Auth] Checking device: {device_id}")
+        # ИСПРАВЛЕНИЕ: нормализуем device_id
+        if isinstance(device_id, bytes):
+            device_id = device_id.decode('utf-8', errors='ignore').strip()
+        elif isinstance(device_id, str):
+            device_id = device_id.strip()
+            
+        print(f"   [Auth] Checking device: '{device_id}'")
         print(f"   [Auth] Allowed devices: {list(self.allowed_devices.keys())}")
-        device_id = device_id.strip()
+        
         if device_id not in self.allowed_devices:
-            print(f"   [Auth] ❌ Device {device_id} not allowed")
+            print(f"   [Auth] ❌ Device '{device_id}' not found in allowed devices")
             return None
 
         nonce = secrets.token_bytes(16)
         timestamp = int(time.time())
-        self.active_challenges[nonce] = (device_id, timestamp)  # ← Сохраняем сырые байты
-        print(f"   [Auth] ✅ Challenge generated for {device_id}")
+        self.active_challenges[nonce] = (device_id, timestamp)
+        print(f"   [Auth] ✅ Challenge generated for '{device_id}'")
         print(f"   [Auth] Challenge: {nonce.hex()} ({len(nonce)} bytes)")
         return nonce
 
@@ -41,7 +55,7 @@ class DeviceAuthenticator:
         # ВЫЧИСЛЯЕМ HMAC ОТ СЫРЫХ БАЙТОВ CHALLENGE
         expected_hmac = hmac.new(
             self.allowed_devices[device_id],
-            challenge_bytes,  # ← СЫРЫЕ БАЙТЫ, НЕ hex
+            challenge_bytes,
             hashlib.sha256
         ).hexdigest()
 
@@ -52,5 +66,5 @@ class DeviceAuthenticator:
             print(f"   [Auth] ❌ HMAC mismatch")
             return None
 
-        print(f"   [Auth] ✅ HMAC match")
+        print(f"   [Auth] ✅ HMAC match for '{device_id}'")
         return device_id

@@ -1,5 +1,4 @@
 # instructions.py — безопасное чтение конфигурации
-
 import os
 
 CONFIG_FILE = 'MainConf.conf'
